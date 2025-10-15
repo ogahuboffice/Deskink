@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ogahuboffice — Staff Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  
+  <style>
+    :root{ --neon:#10b981; --accent:#06b6d4; }
+    body{ background: linear-gradient(180deg,#0f172a 0%, #1e293b 60%, #334155 100%); color:#e6eef8; }
+    .neon-card{ background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); box-shadow:0 8px 30px rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.08); }
+    .neon-icon{ color:var(--neon); filter:drop-shadow(0 0 8px rgba(16,185,129,0.18)); }
+    .small-muted{ color:#94a3b8; font-size:.92rem; }
+    .status-pending{ color: #fbbf24; }
+    .status-completed{ color: #10b981; }
+    .status-in-progress{ color: #3b82f6; }
+  </style>
+</head>
+
+<body class="font-sans min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-gradient-to-r from-green-600 to-blue-600 border-b border-gray-800 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-4">
+        <h1 class="text-2xl font-bold text-white">🏢 Ogahuboffice</h1>
+        <span class="text-sm text-white/80">Staff Dashboard</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="relative" id="notificationBell">
+          <i class="fas fa-bell text-white/80 text-xl cursor-pointer" onclick="toggleNotifications()"></i>
+          <span id="notificationCount" class="absolute -top-2 -right-3 bg-red-500 text-xs px-1 rounded-full hidden">0</span>
+        </div>
+        <span id="staffName" class="text-white">Loading...</span>
+        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center space-x-2">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Notifications Panel -->
+  <div id="notificationsPanel" class="fixed right-4 top-20 w-80 bg-gray-800 rounded-lg shadow-xl z-50 hidden">
+    <div class="p-4 border-b border-gray-700">
+      <h3 class="font-semibold">Notifications</h3>
+    </div>
+    <div id="notificationsList" class="max-h-96 overflow-y-auto">
+      <!-- Notifications will be loaded here -->
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">My Tasks</h3>
+            <p class="small-muted">Assigned tasks</p>
+          </div>
+          <i class="fas fa-tasks neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="myTasks">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Completed</h3>
+            <p class="small-muted">Tasks completed</p>
+          </div>
+          <i class="fas fa-check-circle neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="completedTasks">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Pending</h3>
+            <p class="small-muted">Tasks pending</p>
+          </div>
+          <i class="fas fa-clock neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="pendingTasks">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Performance</h3>
+            <p class="small-muted">Completion rate</p>
+          </div>
+          <i class="fas fa-chart-line neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="completionRate">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="neon-card p-6 rounded-2xl">
+        <h3 class="text-xl font-semibold mb-4">Staff Actions</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="loadMyTasks()" class="p-4 bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-between">
+            <span>My Tasks</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <button onclick="loadRequests()" class="p-4 bg-green-500 hover:bg-green-600 rounded-lg flex items-center justify-between">
+            <span>View Requests</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <button onclick="loadProducts()" class="p-4 bg-purple-500 hover:bg-purple-600 rounded-lg flex items-center justify-between">
+            <span>Products</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <button onclick="loadOrders()" class="p-4 bg-indigo-500 hover:bg-indigo-600 rounded-lg flex items-center justify-between">
+            <span>My Orders</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <h3 class="text-xl font-semibold mb-4">Recent Tasks</h3>
+        <div id="recentTasks" class="space-y-3">
+          <div class="text-center small-muted py-8">Loading tasks...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Tasks Section -->
+    <div id="tasksSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">My Assigned Tasks</h3>
+        <select id="taskStatusFilter" onchange="filterMyTasks()" class="p-2 rounded bg-white/5">
+          <option value="all">All Tasks</option>
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div id="tasksList" class="space-y-3">
+        <!-- Tasks will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Requests Section -->
+    <div id="requestsSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Assignment Requests</h3>
+        <div class="flex gap-2">
+          <select id="requestTypeFilter" onchange="loadRequests()" class="p-2 rounded bg-white/5">
+            <option value="all">All Requests</option>
+            <option value="assignment">Assignments</option>
+            <option value="project">Projects</option>
+          </select>
+          <select id="requestStatusFilter" onchange="loadRequests()" class="p-2 rounded bg-white/5">
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="requestsList">
+        <!-- Requests will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Products Section -->
+    <div id="productsSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Available Products</h3>
+        <select id="productCategorySelect" onchange="loadProducts()" class="p-2 rounded bg-white/5">
+          <option value="all">All Products</option>
+          <option value="airtime">Airtime</option>
+          <option value="data">Data</option>
+          <option value="bills">Bills</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="productsList">
+        <!-- Products will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Orders Section -->
+    <div id="ordersSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <h3 class="text-xl font-semibold mb-6">My Processed Orders</h3>
+      <div class="mb-6">
+        <select id="orderStatusFilter" onchange="filterMyOrders()" class="p-2 rounded bg-white/5">
+          <option value="all">All Orders</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <div id="ordersList" class="space-y-3">
+        <!-- Orders will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Details Modal -->
+  <div id="taskDetailsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-gray-900 p-6 rounded-2xl w-96 neon-card max-h-96 overflow-y-auto">
+      <h3 class="text-xl font-semibold mb-4">Task Details</h3>
+      
+      <div id="taskDetailsContent" class="space-y-3">
+        <!-- Task details will be shown here -->
+      </div>
+
+      <div class="flex gap-2 mt-4">
+        <button onclick="updateTaskStatus('in-progress')" class="flex-1 py-3 rounded bg-blue-500">Start Task</button>
+        <button onclick="updateTaskStatus('completed')" class="flex-1 py-3 rounded bg-green-500">Complete</button>
+        <button onclick="hideTaskDetailsModal()" class="flex-1 py-3 rounded bg-gray-600">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Solution Modal -->
+  <div id="uploadSolutionModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-gray-900 p-6 rounded-2xl w-96 neon-card">
+      <h3 class="text-xl font-semibold mb-4">Upload Solution</h3>
+      
+      <div id="solutionRequestDetails" class="mb-4 p-3 bg-white/5 rounded">
+        <!-- Request details will be shown here -->
+      </div>
+      
+      <textarea id="solutionNotes" placeholder="Solution notes/comments" class="w-full p-3 rounded bg-white/5 mb-3" rows="3"></textarea>
+      <input type="number" id="solutionPrice" placeholder="Final Price (₦)" class="w-full p-3 rounded bg-white/5 mb-3"/>
+      
+      <div class="border-2 border-dashed border-white/20 rounded-lg p-4 mb-3">
+        <input type="file" id="solutionFileUpload" class="hidden" accept=".pdf,.doc,.docx,.zip,.rar"/>
+        <label for="solutionFileUpload" class="cursor-pointer flex flex-col items-center text-white/70">
+          <i class="fas fa-cloud-upload-alt text-2xl mb-2"></i>
+          <span id="solutionFileLabel" class="text-sm">Upload solution file</span>
+        </label>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="uploadSolution()" class="flex-1 py-3 rounded bg-green-500">Upload Solution</button>
+        <button onclick="hideUploadSolutionModal()" class="flex-1 py-3 rounded bg-gray-600">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let authToken = null;
+    let currentTask = null;
+    let currentSolutionRequest = null;
+
+    // Check authentication on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      loadDashboard();
+      loadNotificationsCount();
+    });
+
+    // Authentication functions
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+
+      if (!token || !user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      authToken = token;
+      currentUser = JSON.parse(user);
+      
+      // Only allow staff access
+      if (!['staff', 'manager', 'admin'].includes(currentUser.role)) {
+        alert('Staff access required');
+        logout();
+        return;
+      }
+
+      document.getElementById('staffName').textContent = currentUser.name;
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+
+    // API functions
+    async function apiCall(endpoint, options = {}) {
+      try {
+        const response = await fetch(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+          },
+          ...options
+        });
+
+        if (response.status === 401) {
+          logout();
+          return null;
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('API call failed:', error);
+        return null;
+      }
+    }
+
+    // Notifications functions
+    async function loadNotificationsCount() {
+      const notifications = await apiCall('/api/notifications');
+      if (notifications) {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        const countElement = document.getElementById('notificationCount');
+        if (unreadCount > 0) {
+          countElement.textContent = unreadCount;
+          countElement.classList.remove('hidden');
+        } else {
+          countElement.classList.add('hidden');
+        }
+      }
+    }
+
+    async function toggleNotifications() {
+      const panel = document.getElementById('notificationsPanel');
+      if (panel.classList.contains('hidden')) {
+        await loadNotifications();
+        panel.classList.remove('hidden');
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+
+    async function loadNotifications() {
+      const notifications = await apiCall('/api/notifications');
+      if (notifications) {
+        const container = document.getElementById('notificationsList');
+        const recentNotifications = notifications.slice(0, 5);
+        
+        if (recentNotifications.length === 0) {
+          container.innerHTML = '<div class="p-4 text-center text-gray-400">No notifications</div>';
+        } else {
+          container.innerHTML = recentNotifications.map(notification => `
+            <div class="p-4 border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${notification.read ? '' : 'bg-gray-750'}" 
+                 onclick="markAsRead(${notification.id})">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <div class="font-medium ${notification.read ? 'text-gray-300' : 'text-white'}">${notification.title}</div>
+                  <div class="text-sm text-gray-400 mt-1">${notification.message}</div>
+                  <div class="text-xs text-gray-500 mt-2">${new Date(notification.createdAt).toLocaleString()}</div>
+                </div>
+                ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>' : ''}
+              </div>
+            </div>
+          `).join('');
+        }
+        
+        await loadNotificationsCount();
+      }
+    }
+
+    async function markAsRead(notificationId) {
+      await apiCall(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      });
+      await loadNotifications();
+      await loadNotificationsCount();
+    }
+
+    // Dashboard functions
+    async function loadDashboard() {
+      const data = await apiCall('/api/staff/dashboard');
+      if (data) {
+        document.getElementById('myTasks').textContent = data.totalTasks;
+        document.getElementById('completedTasks').textContent = data.completedTasks;
+        document.getElementById('pendingTasks').textContent = data.pendingTasks;
+        document.getElementById('completionRate').textContent = data.completionRate + '%';
+
+        loadRecentTasks(data.recentTasks);
+      }
+    }
+
+    function loadRecentTasks(tasks) {
+      const container = document.getElementById('recentTasks');
+      const recentTasks = tasks.slice(0, 5);
+      
+      if (recentTasks.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No recent tasks</div>';
+        return;
+      }
+
+      container.innerHTML = recentTasks.map(task => `
+        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+          <div class="flex-1">
+            <div class="font-medium">${task.title}</div>
+            <div class="text-sm text-gray-400">${task.type} • Due: ${new Date(task.deadline).toLocaleDateString()}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm status-${task.status}">${task.status}</div>
+            <div class="text-xs text-gray-400">${task.priority || 'Normal'}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Section management functions
+    function showSection(sectionId) {
+      // Hide all sections first
+      document.getElementById('tasksSection').classList.add('hidden');
+      document.getElementById('requestsSection').classList.add('hidden');
+      document.getElementById('productsSection').classList.add('hidden');
+      document.getElementById('ordersSection').classList.add('hidden');
+      
+      // Show selected section
+      document.getElementById(sectionId).classList.remove('hidden');
+    }
+
+    function loadMyTasks() {
+      showSection('tasksSection');
+      filterMyTasks();
+    }
+
+    function loadRequests() {
+      showSection('requestsSection');
+      fetchRequests();
+    }
+
+    function loadProducts() {
+      showSection('productsSection');
+      fetchProducts();
+    }
+
+    function loadOrders() {
+      showSection('ordersSection');
+      filterMyOrders();
+    }
+
+    // Tasks management
+    async function filterMyTasks() {
+      const status = document.getElementById('taskStatusFilter').value;
+      const tasks = await apiCall('/api/staff/tasks');
+      
+      if (tasks) {
+        let filteredTasks = tasks;
+        
+        if (status !== 'all') {
+          filteredTasks = tasks.filter(task => task.status === status);
+        }
+        
+        displayMyTasks(filteredTasks);
+      }
+    }
+
+    function displayMyTasks(tasks) {
+      const container = document.getElementById('tasksList');
+      
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No tasks found</div>';
+        return;
+      }
+
+      container.innerHTML = tasks.map(task => `
+        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+          <div class="flex-1">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="font-medium">${task.title}</div>
+                <div class="text-sm text-gray-400">${task.type} • Assigned by: ${task.assignedBy}</div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs status-${task.status}">${task.status}</span>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <div class="text-gray-400">Priority</div>
+                <div class="capitalize">${task.priority}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Deadline</div>
+                <div>${new Date(task.deadline).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Created</div>
+                <div>${new Date(task.createdAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="ml-4 flex gap-2">
+            <button onclick="viewTaskDetails(${task.id})" class="p-2 bg-blue-500 hover:bg-blue-600 rounded">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function viewTaskDetails(taskId) {
+      const task = await apiCall(`/api/staff/tasks/${taskId}`);
+      if (task) {
+        currentTask = task;
+        
+        document.getElementById('taskDetailsContent').innerHTML = `
+          <div>
+            <div class="font-semibold text-lg">${task.title}</div>
+            <div class="text-sm text-gray-400">${task.type} • Priority: ${task.priority}</div>
+          </div>
+          <div class="text-sm">
+            <div class="text-gray-400 mb-1">Description:</div>
+            <div>${task.description}</div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <div class="text-gray-400">Deadline</div>
+              <div>${new Date(task.deadline).toLocaleDateString()}</div>
+            </div>
+            <div>
+              <div class="text-gray-400">Status</div>
+              <div class="status-${task.status}">${task.status}</div>
+            </div>
+            <div>
+              <div class="text-gray-400">Assigned By</div>
+              <div>${task.assignedBy}</div>
+            </div>
+            <div>
+              <div class="text-gray-400">Created</div>
+              <div>${new Date(task.createdAt).toLocaleDateString()}</div>
+            </div>
+          </div>
+          ${task.notes ? `
+          <div class="text-sm">
+            <div class="text-gray-400 mb-1">Notes:</div>
+            <div>${task.notes}</div>
+          </div>
+          ` : ''}
+        `;
+        
+        document.getElementById('taskDetailsModal').classList.remove('hidden');
+      }
+    }
+
+    function hideTaskDetailsModal() {
+      document.getElementById('taskDetailsModal').classList.add('hidden');
+      currentTask = null;
+    }
+
+    async function updateTaskStatus(status) {
+      if (!currentTask) return;
+
+      const result = await apiCall(`/api/staff/tasks/${currentTask.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
+      });
+
+      if (result) {
+        alert(`Task marked as ${status}`);
+        hideTaskDetailsModal();
+        filterMyTasks(); // Refresh tasks list
+        loadDashboard(); // Update dashboard stats
+      } else {
+        alert('Failed to update task status');
+      }
+    }
+
+    // Requests management
+    async function fetchRequests() {
+      const typeFilter = document.getElementById('requestTypeFilter').value;
+      const statusFilter = document.getElementById('requestStatusFilter').value;
+      
+      const requests = await apiCall('/api/requests');
+      
+      if (requests) {
+        let filteredRequests = requests;
+        
+        if (typeFilter !== 'all') {
+          filteredRequests = filteredRequests.filter(req => req.type === typeFilter);
+        }
+        
+        if (statusFilter !== 'all') {
+          filteredRequests = filteredRequests.filter(req => req.status === statusFilter);
+        }
+        
+        displayRequests(filteredRequests);
+      }
+    }
+
+    function displayRequests(requests) {
+      const container = document.getElementById('requestsList');
+      
+      if (requests.length === 0) {
+        container.innerHTML = '<div class="col-span-2 text-center small-muted py-8">No requests found</div>';
+        return;
+      }
+
+      container.innerHTML = requests.map(request => `
+        <div class="bg-white/5 rounded-lg p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="font-semibold">${request.title}</h4>
+              <p class="text-sm text-gray-400 capitalize">${request.type} • ${request.userName}</p>
+            </div>
+            <span class="px-2 py-1 text-xs rounded status-${request.status}">${request.status}</span>
+          </div>
+          
+          <p class="text-sm mb-4 line-clamp-2">${request.description}</p>
+          
+          <div class="space-y-2 mb-4 text-sm">
+            <div class="flex justify-between">
+              <span>Budget:</span>
+              <span>₦${request.budget?.toLocaleString() || 'Not specified'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Deadline:</span>
+              <span>${request.deadline ? new Date(request.deadline).toLocaleDateString() : 'Not specified'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Created:</span>
+              <span>${new Date(request.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+          
+          <div class="flex gap-2">
+            ${request.status === 'pending' ? `
+            <button onclick="acceptRequest(${request.id})" class="flex-1 py-2 bg-green-500 hover:bg-green-600 rounded text-sm">
+              Accept Request
+            </button>
+            ` : ''}
+            ${request.status === 'in-progress' ? `
+            <button onclick="showUploadSolutionModal(${request.id})" class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 rounded text-sm">
+              Upload Solution
+            </button>
+            ` : ''}
+            <button onclick="viewRequestDetails(${request.id})" class="flex-1 py-2 bg-gray-500 hover:bg-gray-600 rounded text-sm">
+              View Details
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function acceptRequest(requestId) {
+      const result = await apiCall(`/api/requests/${requestId}/accept`, {
+        method: 'PUT'
+      });
+
+      if (result) {
+        alert('Request accepted successfully');
+        fetchRequests(); // Refresh requests list
+      } else {
+        alert('Failed to accept request');
+      }
+    }
+
+    // Products management
+    async function fetchProducts() {
+      const category = document.getElementById('productCategorySelect').value;
+      const products = await apiCall('/api/products');
+      
+      if (products) {
+        let filteredProducts = products;
+        
+        if (category !== 'all') {
+          filteredProducts = products.filter(product => product.category === category);
+        }
+        
+        displayProducts(filteredProducts);
+      }
+    }
+
+    function displayProducts(products) {
+      const container = document.getElementById('productsList');
+      
+      if (products.length === 0) {
+        container.innerHTML = '<div class="col-span-3 text-center small-muted py-8">No products found</div>';
+        return;
+      }
+
+      container.innerHTML = products.map(product => `
+        <div class="bg-white/5 rounded-lg p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="font-semibold">${product.name}</h4>
+              <p class="text-sm text-gray-400 capitalize">${product.category}</p>
+            </div>
+            <span class="px-2 py-1 text-xs rounded ${
+              product.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+            }">${product.status}</span>
+          </div>
+          
+          <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-sm">
+              <span>Price:</span>
+              <span class="font-semibold">₦${product.price?.toLocaleString() || '0'}</span>
+            </div>
+            ${product.discount ? `
+            <div class="flex justify-between text-sm">
+              <span>Discount:</span>
+              <span class="text-green-400">${product.discount}%</span>
+            </div>
+            ` : ''}
+            ${product.validity ? `
+            <div class="flex justify-between text-sm">
+              <span>Validity:</span>
+              <span>${product.validity}</span>
+            </div>
+            ` : ''}
+            ${product.network ? `
+            <div class="flex justify-between text-sm">
+              <span>Network:</span>
+              <span>${product.network}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <button onclick="processOrder(${product.id})" class="w-full py-2 bg-blue-500 hover:bg-blue-600 rounded text-sm ${
+            product.status !== 'active' ? 'opacity-50 cursor-not-allowed' : ''
+          }" ${product.status !== 'active' ? 'disabled' : ''}>
+            Process Order
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Orders management
+    async function filterMyOrders() {
+      const status = document.getElementById('orderStatusFilter').value;
+      const orders = await apiCall('/api/staff/orders');
+      
+      if (orders) {
+        let filteredOrders = orders;
+        
+        if (status !== 'all') {
+          filteredOrders = orders.filter(order => order.status === status);
+        }
+        
+        displayMyOrders(filteredOrders);
+      }
+    }
+
+    function displayMyOrders(orders) {
+      const container = document.getElementById('ordersList');
+      
+      if (orders.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No orders found</div>';
+        return;
+      }
+
+      container.innerHTML = orders.map(order => `
+        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+          <div class="flex-1">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="font-medium">Order #${order.id}</div>
+                <div class="text-sm text-gray-400">${order.productName || 'N/A'}</div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs status-${order.status}">${order.status}</span>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div class="text-gray-400">Customer</div>
+                <div>${order.customerName || 'Unknown'}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Amount</div>
+                <div>₦${order.amount?.toLocaleString() || '0'}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Date</div>
+                <div>${new Date(order.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Reference</div>
+                <div class="truncate">${order.reference || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Solution upload modal functions
+    async function showUploadSolutionModal(requestId) {
+      const request = await apiCall(`/api/requests/${requestId}`);
+      if (request) {
+        currentSolutionRequest = request;
+        
+        document.getElementById('solutionRequestDetails').innerHTML = `
+          <div>
+            <div class="font-semibold">${request.title}</div>
+            <div class="text-sm text-gray-400">${request.userName} • ${request.type}</div>
+            <div class="text-sm mt-2">${request.description}</div>
+          </div>
+        `;
+        
+        document.getElementById('uploadSolutionModal').classList.remove('hidden');
+      }
+    }
+
+    function hideUploadSolutionModal() {
+      document.getElementById('uploadSolutionModal').classList.add('hidden');
+      currentSolutionRequest = null;
+      document.getElementById('solutionNotes').value = '';
+      document.getElementById('solutionPrice').value = '';
+      document.getElementById('solutionFileUpload').value = '';
+      document.getElementById('solutionFileLabel').textContent = 'Upload solution file';
+    }
+
+    async function uploadSolution() {
+      if (!currentSolutionRequest) return;
+
+      const solutionData = {
+        requestId: currentSolutionRequest.id,
+        notes: document.getElementById('solutionNotes').value,
+        price: parseFloat(document.getElementById('solutionPrice').value) || 0
+      };
+
+      const fileInput = document.getElementById('solutionFileUpload');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('Please upload a solution file');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('solution', JSON.stringify(solutionData));
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/requests/solution', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: formData
+        });
+
+        if (response.ok) {
+          alert('Solution uploaded successfully');
+          hideUploadSolutionModal();
+          fetchRequests(); // Refresh requests list
+        } else {
+          alert('Failed to upload solution');
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Upload failed');
+      }
+    }
+
+    // File upload handling
+    document.getElementById('solutionFileUpload').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('solutionFileLabel').textContent = file.name;
+      }
+    });
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'taskDetailsModal') {
+        hideTaskDetailsModal();
+      }
+      if (e.target.id === 'uploadSolutionModal') {
+        hideUploadSolutionModal();
+      }
+    });
+
+    // Close notifications when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#notificationBell') && !e.target.closest('#notificationsPanel')) {
+        document.getElementById('notificationsPanel').classList.add('hidden');
+      }
+    });
+
+    // Placeholder functions for future implementation
+    function processOrder(productId) {
+      alert(`Process order for product ${productId} - To be implemented`);
+    }
+
+    function viewRequestDetails(requestId) {
+      alert(`View request details ${requestId} - To be implemented`);
+    }
+  </script>
+</body>
+</html>

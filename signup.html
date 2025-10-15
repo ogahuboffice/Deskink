@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ogahuboffice - Sign Up</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 via-white to-yellow-200 font-sans">
+
+  <div class="w-full max-w-md bg-white shadow-2xl rounded-3xl p-8 border border-yellow-200">
+    <div class="text-center mb-8">
+      <img src="https://img.icons8.com/color/96/000000/add-user-group-man-man.png" alt="Logo" class="mx-auto w-20 h-20">
+      <h2 class="text-3xl font-extrabold text-yellow-600 mt-2">Create Account</h2>
+      <p class="text-gray-500 mt-1 text-sm">Sign up to get started with Ogahuboffice</p>
+    </div>
+
+    <form id="signupForm" class="space-y-5">
+
+      <!-- Passport Upload -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Upload Passport</label>
+        <div class="flex flex-col items-center justify-center border-2 border-dashed border-yellow-400 rounded-lg p-4 bg-yellow-50 cursor-pointer">
+          <input type="file" id="signupPassport" accept="image/*" class="hidden" required>
+          <label for="signupPassport" class="cursor-pointer flex flex-col items-center text-yellow-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 16a4 4 0 018 0m-4-4v4m-5 4h10a2 2 0 002-2V7a2 2 0 00-2-2h-3.586a1 1 0 01-.707-.293L9.586 3H6a2 2 0 00-2 2v13a2 2 0 002 2z" />
+            </svg>
+            <span id="fileLabel" class="text-sm font-medium">Click to upload passport</span>
+          </label>
+          <img id="preview" class="mt-3 w-20 h-20 rounded-full hidden border-2 border-yellow-400 object-cover">
+        </div>
+      </div>
+
+      <!-- Full Name -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Full Name</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus-within:border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1a4 4 0 108 0V6a4 4 0 00-4-4zM4 14a6 6 0 1112 0v1H4v-1z" clip-rule="evenodd" />
+          </svg>
+          <input type="text" id="signupName" placeholder="Enter your full name"
+                 class="w-full bg-transparent outline-none text-gray-700" required>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Email Address</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus-within:border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2.94 6.94A10 10 0 0117.06 6.94l-7.06 4.12L2.94 6.94z" />
+            <path d="M18 8.118v5.764a2 2 0 01-2 2H4a2 2 0 01-2-2V8.118l8 4.667 8-4.667z" />
+          </svg>
+          <input type="email" id="signupEmail" placeholder="Enter your email"
+                 class="w-full bg-transparent outline-none text-gray-700" required>
+        </div>
+      </div>
+
+      <!-- Phone -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Phone Number</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus-within:border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 5a2 2 0 012-2h1.5a1 1 0 01.94.658L7.6 6.8a1 1 0 01-.272 1.118l-1.2 1.2a10.3 10.3 0 004.754 4.754l1.2-1.2a1 1 0 011.118-.272l3.142 1.16a1 1 0 01.658.94V16a2 2 0 01-2 2h-1C7.82 18 2 12.18 2 5z"/>
+          </svg>
+          <input type="tel" id="signupPhone" placeholder="Enter your phone number"
+                 class="w-full bg-transparent outline-none text-gray-700" required>
+        </div>
+      </div>
+
+      <!-- Date of Birth -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Date of Birth</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus-within:border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H8V3a1 1 0 00-2 0v1H6V3a1 1 0 00-1-1zM2 9v7a2 2 0 002 2h12a2 2 0 002-2V9H2z" clip-rule="evenodd" />
+          </svg>
+          <input type="date" id="signupDOB"
+                 class="w-full bg-transparent outline-none text-gray-700" required>
+        </div>
+      </div>
+
+      <!-- Address -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Address</label>
+        <div class="flex items-start border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus-within:border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mt-1 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.05 4.05A7 7 0 1114.95 13.95L10 19l-4.95-5.05A7 7 0 015.05 4.05zM10 10a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+          </svg>
+          <textarea id="signupAddress" rows="2" placeholder="Enter your address"
+                    class="w-full bg-transparent outline-none text-gray-700 resize-none" required></textarea>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div>
+        <label class="block text-gray-700 font-medium mb-1">Password</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus-within:border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 8a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2V8zm3 2V8a2 2 0 114 0v2H8z" clip-rule="evenodd" />
+          </svg>
+          <input type="password" id="signupPassword" placeholder="Create password"
+                 class="w-full bg-transparent outline-none text-gray-700" required>
+        </div>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-lg shadow-lg transition duration-300">
+        Sign Up
+      </button>
+    </form>
+
+    <p class="text-center text-gray-600 mt-6 text-sm">
+      Already have an account?
+      <a href="login.html" class="text-yellow-600 font-semibold hover:underline">Login</a>
+    </p>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("signupPassport");
+    const fileLabel = document.getElementById("fileLabel");
+    const preview = document.getElementById("preview");
+
+    fileInput.addEventListener("change", function() {
+      const file = this.files[0];
+      if (file) {
+        fileLabel.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById("signupForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const name = document.getElementById("signupName").value;
+      const email = document.getElementById("signupEmail").value;
+      const phone = document.getElementById("signupPhone").value;
+      const dob = document.getElementById("signupDOB").value;
+      const address = document.getElementById("signupAddress").value;
+      const password = document.getElementById("signupPassword").value;
+      const passport = preview.src;
+
+      const user = { name, email, phone, dob, address, password, passport };
+      localStorage.setItem("ogahubUser", JSON.stringify(user));
+
+      alert("✅ Account created successfully!");
+      window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>

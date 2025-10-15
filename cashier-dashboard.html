@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ogahuboffice — Cashier Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  
+  <style>
+    :root{ --neon:#f59e0b; --accent:#06b6d4; }
+    body{ background: linear-gradient(180deg,#0f172a 0%, #1e293b 60%, #334155 100%); color:#e6eef8; }
+    .neon-card{ background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); box-shadow:0 8px 30px rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.08); }
+    .neon-icon{ color:var(--neon); filter:drop-shadow(0 0 8px rgba(245,158,11,0.18)); }
+    .small-muted{ color:#94a3b8; font-size:.92rem; }
+    .status-pending{ color: #fbbf24; }
+    .status-completed{ color: #10b981; }
+    .status-in-progress{ color: #3b82f6; }
+  </style>
+</head>
+
+<body class="font-sans min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-gradient-to-r from-yellow-600 to-orange-600 border-b border-gray-800 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-4">
+        <h1 class="text-2xl font-bold text-white">🏢 Ogahuboffice</h1>
+        <span class="text-sm text-white/80">Cashier Dashboard</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="relative" id="notificationBell">
+          <i class="fas fa-bell text-white/80 text-xl cursor-pointer" onclick="toggleNotifications()"></i>
+          <span id="notificationCount" class="absolute -top-2 -right-3 bg-red-500 text-xs px-1 rounded-full hidden">0</span>
+        </div>
+        <span id="cashierName" class="text-white">Loading...</span>
+        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center space-x-2">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Notifications Panel -->
+  <div id="notificationsPanel" class="fixed right-4 top-20 w-80 bg-gray-800 rounded-lg shadow-xl z-50 hidden">
+    <div class="p-4 border-b border-gray-700">
+      <h3 class="font-semibold">Notifications</h3>
+    </div>
+    <div id="notificationsList" class="max-h-96 overflow-y-auto">
+      <!-- Notifications will be loaded here -->
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Today's Sales</h3>
+            <p class="small-muted">Total transactions</p>
+          </div>
+          <i class="fas fa-shopping-cart neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="todaySales">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Today's Revenue</h3>
+            <p class="small-muted">Total earnings</p>
+          </div>
+          <i class="fas fa-wallet neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="todayRevenue">₦0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Pending Orders</h3>
+            <p class="small-muted">Awaiting processing</p>
+          </div>
+          <i class="fas fa-clock neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="pendingOrders">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Success Rate</h3>
+            <p class="small-muted">Transaction success</p>
+          </div>
+          <i class="fas fa-chart-pie neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="successRate">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="neon-card p-6 rounded-2xl">
+        <h3 class="text-xl font-semibold mb-4">Cashier Actions</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="loadQuickSale()" class="p-4 bg-green-500 hover:bg-green-600 rounded-lg flex items-center justify-between">
+            <span>Quick Sale</span>
+            <i class="fas fa-bolt"></i>
+          </button>
+          <button onclick="loadOrders()" class="p-4 bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-between">
+            <span>Process Orders</span>
+            <i class="fas fa-cog"></i>
+          </button>
+          <button onclick="loadProducts()" class="p-4 bg-purple-500 hover:bg-purple-600 rounded-lg flex items-center justify-between">
+            <span>View Products</span>
+            <i class="fas fa-box"></i>
+          </button>
+          <button onclick="loadTransactions()" class="p-4 bg-indigo-500 hover:bg-indigo-600 rounded-lg flex items-center justify-between">
+            <span>Transactions</span>
+            <i class="fas fa-receipt"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <h3 class="text-xl font-semibold mb-4">Recent Transactions</h3>
+        <div id="recentTransactions" class="space-y-3">
+          <div class="text-center small-muted py-8">Loading transactions...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Sale Section -->
+    <div id="quickSaleSection" class="neon-card p-6 rounded-2xl mt-8">
+      <h3 class="text-xl font-semibold mb-6">Quick Sale</h3>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Product Selection -->
+        <div class="space-y-4">
+          <div class="flex gap-4 mb-4">
+            <select id="saleCategory" onchange="loadSaleProducts()" class="flex-1 p-3 rounded bg-white/5">
+              <option value="airtime">Airtime</option>
+              <option value="data">Data</option>
+              <option value="bills">Bills</option>
+            </select>
+            <select id="saleNetwork" onchange="loadSaleProducts()" class="flex-1 p-3 rounded bg-white/5">
+              <option value="all">All Networks</option>
+              <option value="MTN">MTN</option>
+              <option value="GLO">GLO</option>
+              <option value="AIRTEL">AIRTEL</option>
+              <option value="9MOBILE">9MOBILE</option>
+            </select>
+          </div>
+
+          <div id="saleProducts" class="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+            <!-- Products will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Order Details -->
+        <div class="space-y-4">
+          <div class="bg-white/5 rounded-lg p-4">
+            <h4 class="font-semibold mb-4">Order Details</h4>
+            
+            <div id="selectedProduct" class="hidden mb-4 p-3 bg-white/10 rounded">
+              <!-- Selected product details -->
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <label class="text-sm text-gray-400 mb-1 block">Customer Phone</label>
+                <input type="tel" id="customerPhone" placeholder="08012345678" class="w-full p-3 rounded bg-white/5"/>
+              </div>
+              
+              <div id="customAmountField" class="hidden">
+                <label class="text-sm text-gray-400 mb-1 block">Amount (₦)</label>
+                <input type="number" id="customAmount" placeholder="Enter amount" class="w-full p-3 rounded bg-white/5"/>
+              </div>
+
+              <div>
+                <label class="text-sm text-gray-400 mb-1 block">Payment Method</label>
+                <select id="paymentMethod" class="w-full p-3 rounded bg-white/5">
+                  <option value="cash">Cash</option>
+                  <option value="transfer">Bank Transfer</option>
+                  <option value="pos">POS</option>
+                  <option value="wallet">Wallet</option>
+                </select>
+              </div>
+
+              <div class="flex gap-2">
+                <button onclick="processSale()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 rounded font-semibold">
+                  Process Sale
+                </button>
+                <button onclick="clearSale()" class="px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Quick Sales -->
+          <div class="bg-white/5 rounded-lg p-4">
+            <h4 class="font-semibold mb-3">Recent Quick Sales</h4>
+            <div id="recentQuickSales" class="space-y-2">
+              <!-- Recent sales will be shown here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders Section -->
+    <div id="ordersSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Process Orders</h3>
+        <select id="orderStatusFilter" onchange="filterOrders()" class="p-2 rounded bg-white/5">
+          <option value="pending">Pending Orders</option>
+          <option value="all">All Orders</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <div id="ordersList" class="space-y-3">
+        <!-- Orders will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Products Section -->
+    <div id="productsSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Available Products</h3>
+        <select id="productCategorySelect" onchange="loadProducts()" class="p-2 rounded bg-white/5">
+          <option value="all">All Products</option>
+          <option value="airtime">Airtime</option>
+          <option value="data">Data</option>
+          <option value="bills">Bills</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="productsList">
+        <!-- Products will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Transactions Section -->
+    <div id="transactionsSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Transaction History</h3>
+        <div class="flex gap-2">
+          <input type="date" id="transactionDate" class="p-2 rounded bg-white/5" onchange="loadTransactions()"/>
+          <select id="transactionType" onchange="loadTransactions()" class="p-2 rounded bg-white/5">
+            <option value="all">All Types</option>
+            <option value="airtime">Airtime</option>
+            <option value="data">Data</option>
+            <option value="bills">Bills</option>
+          </select>
+        </div>
+      </div>
+      <div id="transactionsList" class="space-y-3">
+        <!-- Transactions will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Sale Confirmation Modal -->
+  <div id="saleConfirmationModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-gray-900 p-6 rounded-2xl w-96 neon-card">
+      <h3 class="text-xl font-semibold mb-4">Confirm Sale</h3>
+      
+      <div id="saleConfirmationDetails" class="space-y-3 mb-4">
+        <!-- Sale details will be shown here -->
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="confirmSale()" class="flex-1 py-3 rounded bg-green-500 font-semibold">Confirm</button>
+        <button onclick="hideSaleConfirmation()" class="flex-1 py-3 rounded bg-gray-600">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let authToken = null;
+    let selectedProduct = null;
+    let currentSaleData = null;
+
+    // Check authentication on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      loadDashboard();
+      loadNotificationsCount();
+      loadSaleProducts();
+      loadRecentQuickSales();
+    });
+
+    // Authentication functions
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+
+      if (!token || !user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      authToken = token;
+      currentUser = JSON.parse(user);
+      
+      // Only allow cashier access
+      if (!['cashier', 'manager', 'admin'].includes(currentUser.role)) {
+        alert('Cashier access required');
+        logout();
+        return;
+      }
+
+      document.getElementById('cashierName').textContent = currentUser.name;
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+
+    // API functions
+    async function apiCall(endpoint, options = {}) {
+      try {
+        const response = await fetch(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+          },
+          ...options
+        });
+
+        if (response.status === 401) {
+          logout();
+          return null;
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('API call failed:', error);
+        return null;
+      }
+    }
+
+    // Notifications functions
+    async function loadNotificationsCount() {
+      const notifications = await apiCall('/api/notifications');
+      if (notifications) {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        const countElement = document.getElementById('notificationCount');
+        if (unreadCount > 0) {
+          countElement.textContent = unreadCount;
+          countElement.classList.remove('hidden');
+        } else {
+          countElement.classList.add('hidden');
+        }
+      }
+    }
+
+    async function toggleNotifications() {
+      const panel = document.getElementById('notificationsPanel');
+      if (panel.classList.contains('hidden')) {
+        await loadNotifications();
+        panel.classList.remove('hidden');
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+
+    async function loadNotifications() {
+      const notifications = await apiCall('/api/notifications');
+      if (notifications) {
+        const container = document.getElementById('notificationsList');
+        const recentNotifications = notifications.slice(0, 5);
+        
+        if (recentNotifications.length === 0) {
+          container.innerHTML = '<div class="p-4 text-center text-gray-400">No notifications</div>';
+        } else {
+          container.innerHTML = recentNotifications.map(notification => `
+            <div class="p-4 border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${notification.read ? '' : 'bg-gray-750'}" 
+                 onclick="markAsRead(${notification.id})">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <div class="font-medium ${notification.read ? 'text-gray-300' : 'text-white'}">${notification.title}</div>
+                  <div class="text-sm text-gray-400 mt-1">${notification.message}</div>
+                  <div class="text-xs text-gray-500 mt-2">${new Date(notification.createdAt).toLocaleString()}</div>
+                </div>
+                ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>' : ''}
+              </div>
+            </div>
+          `).join('');
+        }
+        
+        await loadNotificationsCount();
+      }
+    }
+
+    async function markAsRead(notificationId) {
+      await apiCall(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      });
+      await loadNotifications();
+      await loadNotificationsCount();
+    }
+
+    // Dashboard functions
+    async function loadDashboard() {
+      const data = await apiCall('/api/cashier/dashboard');
+      if (data) {
+        document.getElementById('todaySales').textContent = data.todaySales;
+        document.getElementById('todayRevenue').textContent = `₦${data.todayRevenue.toLocaleString()}`;
+        document.getElementById('pendingOrders').textContent = data.pendingOrders;
+        document.getElementById('successRate').textContent = data.successRate + '%';
+
+        loadRecentTransactions(data.recentTransactions);
+      }
+    }
+
+    function loadRecentTransactions(transactions) {
+      const container = document.getElementById('recentTransactions');
+      const recentTransactions = transactions.slice(0, 5);
+      
+      if (recentTransactions.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No recent transactions</div>';
+        return;
+      }
+
+      container.innerHTML = recentTransactions.map(transaction => `
+        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+          <div class="flex-1">
+            <div class="font-medium">${transaction.productName}</div>
+            <div class="text-sm text-gray-400">${transaction.customerPhone} • ${transaction.paymentMethod}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-semibold">₦${transaction.amount?.toLocaleString() || '0'}</div>
+            <div class="text-xs status-${transaction.status}">${transaction.status}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Section management functions
+    function showSection(sectionId) {
+      // Hide all sections first
+      document.getElementById('quickSaleSection').classList.add('hidden');
+      document.getElementById('ordersSection').classList.add('hidden');
+      document.getElementById('productsSection').classList.add('hidden');
+      document.getElementById('transactionsSection').classList.add('hidden');
+      
+      // Show selected section
+      document.getElementById(sectionId).classList.remove('hidden');
+    }
+
+    function loadQuickSale() {
+      showSection('quickSaleSection');
+    }
+
+    function loadOrders() {
+      showSection('ordersSection');
+      filterOrders();
+    }
+
+    function loadProducts() {
+      showSection('productsSection');
+      fetchProducts();
+    }
+
+    function loadTransactions() {
+      showSection('transactionsSection');
+      fetchTransactions();
+    }
+
+    // Quick Sale functionality
+    async function loadSaleProducts() {
+      const category = document.getElementById('saleCategory').value;
+      const network = document.getElementById('saleNetwork').value;
+      
+      const products = await apiCall('/api/products');
+      
+      if (products) {
+        let filteredProducts = products.filter(product => 
+          product.category === category && product.status === 'active'
+        );
+        
+        if (network !== 'all') {
+          filteredProducts = filteredProducts.filter(product => 
+            product.network === network
+          );
+        }
+        
+        displaySaleProducts(filteredProducts);
+      }
+    }
+
+    function displaySaleProducts(products) {
+      const container = document.getElementById('saleProducts');
+      
+      if (products.length === 0) {
+        container.innerHTML = '<div class="col-span-2 text-center small-muted py-8">No products found</div>';
+        return;
+      }
+
+      container.innerHTML = products.map(product => `
+        <button onclick="selectProduct(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
+                class="p-3 bg-white/5 hover:bg-white/10 rounded-lg text-left transition-colors">
+          <div class="font-medium">${product.name}</div>
+          <div class="text-sm text-gray-400 mt-1">₦${product.price?.toLocaleString() || '0'}</div>
+          ${product.discount ? `
+          <div class="text-xs text-green-400 mt-1">${product.discount}% discount</div>
+          ` : ''}
+        </button>
+      `).join('');
+    }
+
+    function selectProduct(product) {
+      selectedProduct = product;
+      
+      document.getElementById('selectedProduct').innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-semibold">${product.name}</div>
+            <div class="text-sm text-gray-400">${product.network || ''}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold">₦${product.price?.toLocaleString() || '0'}</div>
+            ${product.discount ? `
+            <div class="text-xs text-green-400">Save ₦${(product.price * product.discount / 100).toLocaleString()}</div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('selectedProduct').classList.remove('hidden');
+      
+      // Show custom amount field for airtime
+      if (product.category === 'airtime') {
+        document.getElementById('customAmountField').classList.remove('hidden');
+        document.getElementById('customAmount').value = product.amount || '';
+      } else {
+        document.getElementById('customAmountField').classList.add('hidden');
+      }
+    }
+
+    function clearSale() {
+      selectedProduct = null;
+      document.getElementById('selectedProduct').classList.add('hidden');
+      document.getElementById('customerPhone').value = '';
+      document.getElementById('customAmount').value = '';
+      document.getElementById('paymentMethod').value = 'cash';
+      document.getElementById('customAmountField').classList.add('hidden');
+    }
+
+    function processSale() {
+      if (!selectedProduct) {
+        alert('Please select a product');
+        return;
+      }
+
+      const customerPhone = document.getElementById('customerPhone').value;
+      if (!customerPhone) {
+        alert('Please enter customer phone number');
+        return;
+      }
+
+      currentSaleData = {
+        productId: selectedProduct.id,
+        productName: selectedProduct.name,
+        category: selectedProduct.category,
+        customerPhone: customerPhone,
+        paymentMethod: document.getElementById('paymentMethod').value,
+        amount: selectedProduct.category === 'airtime' ? 
+          parseFloat(document.getElementById('customAmount').value) || selectedProduct.price : 
+          selectedProduct.price
+      };
+
+      // Show confirmation modal
+      document.getElementById('saleConfirmationDetails').innerHTML = `
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span>Product:</span>
+            <span class="font-semibold">${currentSaleData.productName}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Customer:</span>
+            <span>${currentSaleData.customerPhone}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Amount:</span>
+            <span class="font-bold">₦${currentSaleData.amount.toLocaleString()}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Payment:</span>
+            <span class="capitalize">${currentSaleData.paymentMethod}</span>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('saleConfirmationModal').classList.remove('hidden');
+    }
+
+    function hideSaleConfirmation() {
+      document.getElementById('saleConfirmationModal').classList.add('hidden');
+      currentSaleData = null;
+    }
+
+    async function confirmSale() {
+      if (!currentSaleData) return;
+
+      const result = await apiCall('/api/cashier/sales', {
+        method: 'POST',
+        body: JSON.stringify(currentSaleData)
+      });
+
+      if (result) {
+        alert('Sale processed successfully!');
+        hideSaleConfirmation();
+        clearSale();
+        loadDashboard(); // Refresh dashboard stats
+        loadRecentQuickSales(); // Refresh recent sales
+      } else {
+        alert('Failed to process sale');
+      }
+    }
+
+    async function loadRecentQuickSales() {
+      const sales = await apiCall('/api/cashier/recent-sales');
+      if (sales) {
+        const container = document.getElementById('recentQuickSales');
+        const recentSales = sales.slice(0, 3);
+        
+        if (recentSales.length === 0) {
+          container.innerHTML = '<div class="text-center text-gray-400 py-4">No recent sales</div>';
+        } else {
+          container.innerHTML = recentSales.map(sale => `
+            <div class="flex justify-between items-center p-2 bg-white/5 rounded text-sm">
+              <div>
+                <div class="font-medium">${sale.productName}</div>
+                <div class="text-gray-400">${sale.customerPhone}</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold">₦${sale.amount?.toLocaleString() || '0'}</div>
+                <div class="text-xs status-${sale.status}">${sale.status}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    // Orders management
+    async function filterOrders() {
+      const status = document.getElementById('orderStatusFilter').value;
+      const orders = await apiCall('/api/cashier/orders');
+      
+      if (orders) {
+        let filteredOrders = orders;
+        
+        if (status !== 'all') {
+          filteredOrders = orders.filter(order => order.status === status);
+        }
+        
+        displayOrders(filteredOrders);
+      }
+    }
+
+    function displayOrders(orders) {
+      const container = document.getElementById('ordersList');
+      
+      if (orders.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No orders found</div>';
+        return;
+      }
+
+      container.innerHTML = orders.map(order => `
+        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+          <div class="flex-1">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="font-medium">Order #${order.id}</div>
+                <div class="text-sm text-gray-400">${order.productName} • ${order.customerPhone}</div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs status-${order.status}">${order.status}</span>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div class="text-gray-400">Amount</div>
+                <div>₦${order.amount?.toLocaleString() || '0'}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Payment</div>
+                <div class="capitalize">${order.paymentMethod}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Date</div>
+                <div>${new Date(order.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Reference</div>
+                <div class="truncate">${order.reference || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="ml-4 flex gap-2">
+            ${order.status === 'pending' ? `
+            <button onclick="processOrder(${order.id})" class="p-2 bg-green-500 hover:bg-green-600 rounded">
+              <i class="fas fa-check"></i>
+            </button>
+            ` : ''}
+            <button onclick="viewOrderDetails(${order.id})" class="p-2 bg-blue-500 hover:bg-blue-600 rounded">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Products management
+    async function fetchProducts() {
+      const category = document.getElementById('productCategorySelect').value;
+      const products = await apiCall('/api/products');
+      
+      if (products) {
+        let filteredProducts = products;
+        
+        if (category !== 'all') {
+          filteredProducts = products.filter(product => product.category === category);
+        }
+        
+        displayProducts(filteredProducts);
+      }
+    }
+
+    function displayProducts(products) {
+      const container = document.getElementById('productsList');
+      
+      if (products.length === 0) {
+        container.innerHTML = '<div class="col-span-3 text-center small-muted py-8">No products found</div>';
+        return;
+      }
+
+      container.innerHTML = products.map(product => `
+        <div class="bg-white/5 rounded-lg p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="font-semibold">${product.name}</h4>
+              <p class="text-sm text-gray-400 capitalize">${product.category}</p>
+            </div>
+            <span class="px-2 py-1 text-xs rounded ${
+              product.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+            }">${product.status}</span>
+          </div>
+          
+          <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-sm">
+              <span>Price:</span>
+              <span class="font-semibold">₦${product.price?.toLocaleString() || '0'}</span>
+            </div>
+            ${product.discount ? `
+            <div class="flex justify-between text-sm">
+              <span>Discount:</span>
+              <span class="text-green-400">${product.discount}%</span>
+            </div>
+            ` : ''}
+            ${product.validity ? `
+            <div class="flex justify-between text-sm">
+              <span>Validity:</span>
+              <span>${product.validity}</span>
+            </div>
+            ` : ''}
+            ${product.network ? `
+            <div class="flex justify-between text-sm">
+              <span>Network:</span>
+              <span>${product.network}</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Transactions management
+    async function fetchTransactions() {
+      const date = document.getElementById('transactionDate').value;
+      const type = document.getElementById('transactionType').value;
+      
+      let endpoint = '/api/cashier/transactions';
+      const params = new URLSearchParams();
+      
+      if (date) params.append('date', date);
+      if (type !== 'all') params.append('type', type);
+      
+      if (params.toString()) {
+        endpoint += '?' + params.toString();
+      }
+      
+      const transactions = await apiCall(endpoint);
+      
+      if (transactions) {
+        displayTransactions(transactions);
+      }
+    }
+
+    function displayTransactions(transactions) {
+      const container = document.getElementById('transactionsList');
+      
+      if (transactions.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No transactions found</div>';
+        return;
+      }
+
+      container.innerHTML = transactions.map(transaction => `
+        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+          <div class="flex-1">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="font-medium">${transaction.productName}</div>
+                <div class="text-sm text-gray-400">${transaction.customerPhone} • ${transaction.paymentMethod}</div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs status-${transaction.status}">${transaction.status}</span>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div class="text-gray-400">Amount</div>
+                <div>₦${transaction.amount?.toLocaleString() || '0'}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Type</div>
+                <div class="capitalize">${transaction.category}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Date</div>
+                <div>${new Date(transaction.createdAt).toLocaleString()}</div>
+              </div>
+              <div>
+                <div class="text-gray-400">Reference</div>
+                <div class="truncate">${transaction.reference || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'saleConfirmationModal') {
+        hideSaleConfirmation();
+      }
+    });
+
+    // Close notifications when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#notificationBell') && !e.target.closest('#notificationsPanel')) {
+        document.getElementById('notificationsPanel').classList.add('hidden');
+      }
+    });
+
+    // Placeholder functions for future implementation
+    async function processOrder(orderId) {
+      const result = await apiCall(`/api/cashier/orders/${orderId}/process`, {
+        method: 'PUT'
+      });
+
+      if (result) {
+        alert('Order processed successfully');
+        filterOrders(); // Refresh orders list
+        loadDashboard(); // Update dashboard stats
+      } else {
+        alert('Failed to process order');
+      }
+    }
+
+    function viewOrderDetails(orderId) {
+      alert(`View order details ${orderId} - To be implemented`);
+    }
+  </script>
+</body>
+</html>

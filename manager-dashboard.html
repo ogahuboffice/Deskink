@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ogahuboffice — Manager Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; style-src 'self' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com 'unsafe-inline'; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
+  <style>
+    :root{ --neon:#7c3aed; --accent:#06b6d4; }
+    body{ background: linear-gradient(180deg,#0f172a 0%, #1e293b 60%, #334155 100%); color:#e6eef8; }
+    .neon-card{ background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); box-shadow:0 8px 30px rgba(124,58,237,0.06); border:1px solid rgba(124,58,237,0.08); }
+    .neon-icon{ color:var(--neon); filter:drop-shadow(0 0 8px rgba(124,58,237,0.18)); }
+    .small-muted{ color:#94a3b8; font-size:.92rem; }
+    .status-pending{ color: #fbbf24; }
+    .status-completed{ color: #10b981; }
+    .status-in-progress{ color: #3b82f6; }
+    .status-failed{ color: #ef4444; }
+    
+    /* Security enhancements */
+    .blur-sensitive { filter: blur(3px); transition: filter 0.3s; }
+    .blur-sensitive:hover { filter: none; }
+    
+    /* Loading states */
+    .loading { opacity: 0.6; pointer-events: none; }
+    
+    /* Error states */
+    .error { border-color: #ef4444 !important; }
+  </style>
+</head>
+
+<body class="font-sans min-h-screen">
+  <!-- Security Overlay (hidden by default) -->
+  <div id="securityOverlay" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex-col items-center justify-center">
+    <div class="text-center p-8">
+      <i class="fas fa-shield-alt text-red-500 text-6xl mb-4"></i>
+      <h2 class="text-2xl font-bold text-white mb-2">Security Alert</h2>
+      <p class="text-gray-300 mb-4" id="securityMessage">Unauthorized access detected</p>
+      <button onclick="resetSecurityAlert()" class="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg">
+        Continue Securely
+      </button>
+    </div>
+  </div>
+
+  <!-- Session Timeout Warning -->
+  <div id="sessionTimeoutWarning" class="fixed bottom-4 right-4 bg-yellow-500 text-black p-4 rounded-lg shadow-lg z-40 hidden">
+    <div class="flex items-center space-x-3">
+      <i class="fas fa-clock text-xl"></i>
+      <div>
+        <div class="font-semibold">Session Expiring</div>
+        <div>Your session will expire in <span id="timeoutCountdown">5:00</span></div>
+      </div>
+      <button onclick="extendSession()" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-white text-sm">
+        Extend
+      </button>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="bg-gradient-to-r from-purple-600 to-blue-600 border-b border-gray-800 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-4">
+        <h1 class="text-2xl font-bold text-white">🏢 Ogahuboffice</h1>
+        <span class="text-sm text-white/80">Manager Dashboard</span>
+        <span id="sessionTimer" class="text-xs bg-black/20 px-2 py-1 rounded"></span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="relative" id="notificationBell">
+          <i class="fas fa-bell text-white/80 text-xl cursor-pointer" onclick="toggleNotifications()"></i>
+          <span id="notificationCount" class="absolute -top-2 -right-3 bg-red-500 text-xs px-1 rounded-full hidden">0</span>
+        </div>
+        <span id="managerName" class="text-white">Loading...</span>
+        <button onclick="secureLogout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center space-x-2">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Notifications Panel -->
+  <div id="notificationsPanel" class="fixed right-4 top-20 w-80 bg-gray-800 rounded-lg shadow-xl z-50 hidden">
+    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+      <h3 class="font-semibold">Notifications</h3>
+      <button onclick="markAllAsRead()" class="text-sm text-blue-400 hover:text-blue-300">Mark all read</button>
+    </div>
+    <div id="notificationsList" class="max-h-96 overflow-y-auto">
+      <!-- Notifications will be loaded here -->
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Total Users</h3>
+            <p class="small-muted">Registered users</p>
+          </div>
+          <i class="fas fa-users neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="totalUsers">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Total Products</h3>
+            <p class="small-muted">Active products</p>
+          </div>
+          <i class="fas fa-box neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="totalProducts">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Today's Orders</h3>
+            <p class="small-muted">Completed today</p>
+          </div>
+          <i class="fas fa-shopping-cart neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold" id="todayOrders">0</div>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold">Revenue</h3>
+            <p class="small-muted">Total earnings</p>
+          </div>
+          <i class="fas fa-wallet neon-icon text-2xl"></i>
+        </div>
+        <div class="mt-4">
+          <div class="text-3xl font-bold blur-sensitive" id="totalRevenue" onclick="toggleBlur(this)">₦0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="neon-card p-6 rounded-2xl">
+        <h3 class="text-xl font-semibold mb-4">Manager Actions</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="loadUsers()" class="p-4 bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-between">
+            <span>Manage Users</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <button onclick="loadProductsManagement()" class="p-4 bg-green-500 hover:bg-green-600 rounded-lg flex items-center justify-between">
+            <span>Manage Products</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <button onclick="loadOrders()" class="p-4 bg-purple-500 hover:bg-purple-600 rounded-lg flex items-center justify-between">
+            <span>View Orders</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <button onclick="loadRequests()" class="p-4 bg-indigo-500 hover:bg-indigo-600 rounded-lg flex items-center justify-between">
+            <span>Manage Requests</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="neon-card p-6 rounded-2xl">
+        <h3 class="text-xl font-semibold mb-4">Recent Orders</h3>
+        <div id="recentOrders" class="space-y-3">
+          <div class="text-center small-muted py-8">Loading orders...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Section -->
+    <div id="usersSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Users Management</h3>
+        <button onclick="showAddUserModal()" class="px-4 py-2 rounded bg-green-500 flex items-center gap-2">
+          <i class="fas fa-plus"></i>
+          <span>Add User</span>
+        </button>
+      </div>
+      <div class="mb-6">
+        <input type="text" id="userSearch" placeholder="Search users..." class="w-full p-3 rounded bg-white/5" onkeyup="debounce(searchUsers, 500)"/>
+      </div>
+      <div id="usersList" class="space-y-3">
+        <!-- Users will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Products Management Section -->
+    <div id="productsManagementSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Products Management</h3>
+        <div class="flex gap-2">
+          <select id="productCategorySelect" onchange="loadCategoryProducts()" class="p-2 rounded bg-white/5">
+            <option value="all">All Products</option>
+            <option value="airtime">Airtime</option>
+            <option value="data">Data</option>
+            <option value="bills">Bills</option>
+          </select>
+          <button onclick="showAddProductModal()" class="px-4 py-2 rounded bg-green-500 flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Add Product</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="productsManagementList">
+        <!-- Products will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Orders Section -->
+    <div id="ordersSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <h3 class="text-xl font-semibold mb-6">Orders Management</h3>
+      <div class="mb-6">
+        <select id="orderStatusFilter" onchange="filterOrders()" class="p-2 rounded bg-white/5">
+          <option value="all">All Orders</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <div id="ordersList" class="space-y-3">
+        <!-- Orders will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Assignments & Projects Section -->
+    <div id="assignmentsSection" class="neon-card p-6 rounded-2xl mt-8 hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold">Assignments & Projects Management</h3>
+        <div class="flex gap-2">
+          <select id="requestTypeFilter" onchange="loadRequests()" class="p-2 rounded bg-white/5">
+            <option value="all">All Requests</option>
+            <option value="assignment">Assignments</option>
+            <option value="project">Projects</option>
+          </select>
+          <select id="requestStatusFilter" onchange="loadRequests()" class="p-2 rounded bg-white/5">
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="requestsList">
+        <!-- Requests will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-gray-900 p-6 rounded-2xl w-96 neon-card">
+      <h3 class="text-xl font-semibold mb-4">Add New User</h3>
+      <input type="text" id="newUserName" placeholder="Full Name" class="w-full p-3 rounded bg-white/5 mb-3" maxlength="100"/>
+      <input type="email" id="newUserEmail" placeholder="Email Address" class="w-full p-3 rounded bg-white/5 mb-3" maxlength="255"/>
+      <input type="tel" id="newUserPhone" placeholder="Phone Number" class="w-full p-3 rounded bg-white/5 mb-4" maxlength="20"/>
+      <select id="newUserRole" class="w-full p-3 rounded bg-white/5 mb-4">
+        <option value="user">User</option>
+        <option value="staff">Staff</option>
+        <option value="cashier">Cashier</option>
+        <option value="manager">Manager</option>
+      </select>
+      <div class="flex gap-2">
+        <button onclick="createUser()" class="flex-1 py-3 rounded bg-green-500">Create User</button>
+        <button onclick="hideAddUserModal()" class="flex-1 py-3 rounded bg-gray-600">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal -->
+  <div id="addProductModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-gray-900 p-6 rounded-2xl w-96 neon-card max-h-96 overflow-y-auto">
+      <h3 class="text-xl font-semibold mb-4">Add New Product</h3>
+      
+      <select id="productType" onchange="showProductForm()" class="w-full p-3 rounded bg-white/5 mb-4">
+        <option value="">Select Product Type</option>
+        <option value="airtime">Airtime</option>
+        <option value="data">Data Plan</option>
+        <option value="bills">Bills Payment</option>
+      </select>
+
+      <!-- Airtime Form -->
+      <div id="airtimeForm" class="hidden space-y-3">
+        <select id="airtimeNetwork" class="w-full p-3 rounded bg-white/5">
+          <option value="MTN">MTN</option>
+          <option value="GLO">GLO</option>
+          <option value="AIRTEL">AIRTEL</option>
+          <option value="9MOBILE">9MOBILE</option>
+        </select>
+        <input type="number" id="airtimeAmount" placeholder="Amount (₦)" class="w-full p-3 rounded bg-white/5" min="50" max="100000"/>
+        <input type="number" id="airtimeDiscount" placeholder="Discount %" class="w-full p-3 rounded bg-white/5" min="0" max="100" value="0"/>
+      </div>
+
+      <!-- Data Form -->
+      <div id="dataForm" class="hidden space-y-3">
+        <select id="dataNetwork" class="w-full p-3 rounded bg-white/5">
+          <option value="MTN">MTN</option>
+          <option value="GLO">GLO</option>
+          <option value="AIRTEL">AIRTEL</option>
+          <option value="9MOBILE">9MOBILE</option>
+        </select>
+        <select id="dataSize" class="w-full p-3 rounded bg-white/5">
+          <option value="100MB">100MB</option>
+          <option value="500MB">500MB</option>
+          <option value="1GB">1GB</option>
+          <option value="2GB">2GB</option>
+          <option value="5GB">5GB</option>
+          <option value="10GB">10GB</option>
+        </select>
+        <input type="text" id="dataValidity" placeholder="Validity (e.g., 30 days)" class="w-full p-3 rounded bg-white/5" value="30 days" maxlength="50"/>
+        <input type="number" id="dataPrice" placeholder="Price (₦)" class="w-full p-3 rounded bg-white/5" min="50" max="50000"/>
+      </div>
+
+      <!-- Bills Form -->
+      <div id="billsForm" class="hidden space-y-3">
+        <select id="billsType" class="w-full p-3 rounded bg-white/5">
+          <option value="ELECTRICITY">Electricity</option>
+          <option value="TV SUBSCRIPTION">TV Subscription</option>
+          <option value="WATER BILL">Water Bill</option>
+        </select>
+        <input type="text" id="billsProvider" placeholder="Provider" class="w-full p-3 rounded bg-white/5" maxlength="100"/>
+        <input type="number" id="billsAmount" placeholder="Amount (₦)" class="w-full p-3 rounded bg-white/5" min="50" max="1000000"/>
+        <input type="number" id="billsFee" placeholder="Service Fee (₦)" class="w-full p-3 rounded bg-white/5" min="0" max="10000" value="100"/>
+      </div>
+
+      <div class="flex gap-2 mt-4">
+        <button onclick="createSpecificProduct()" class="flex-1 py-3 rounded bg-green-500">Create Product</button>
+        <button onclick="hideAddProductModal()" class="flex-1 py-3 rounded bg-gray-600">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Solution Modal -->
+  <div id="uploadSolutionModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-gray-900 p-6 rounded-2xl w-96 neon-card">
+      <h3 class="text-xl font-semibold mb-4">Upload Solution</h3>
+      
+      <div id="solutionRequestDetails" class="mb-4 p-3 bg-white/5 rounded">
+        <!-- Request details will be shown here -->
+      </div>
+      
+      <textarea id="solutionNotes" placeholder="Solution notes/comments" class="w-full p-3 rounded bg-white/5 mb-3" rows="3" maxlength="1000"></textarea>
+      <input type="number" id="solutionPrice" placeholder="Final Price (₦)" class="w-full p-3 rounded bg-white/5 mb-3" min="0" max="1000000"/>
+      
+      <div class="border-2 border-dashed border-white/20 rounded-lg p-4 mb-3">
+        <input type="file" id="solutionFileUpload" class="hidden" accept=".pdf,.doc,.docx,.zip,.rar" maxfilesize="10485760"/>
+        <label for="solutionFileUpload" class="cursor-pointer flex flex-col items-center text-white/70">
+          <i class="fas fa-cloud-upload-alt text-2xl mb-2"></i>
+          <span id="solutionFileLabel" class="text-sm">Upload solution file (Max 10MB)</span>
+        </label>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="uploadSolution()" class="flex-1 py-3 rounded bg-green-500">Upload Solution</button>
+        <button onclick="hideUploadSolutionModal()" class="flex-1 py-3 rounded bg-gray-600">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Security Configuration
+    const SECURITY_CONFIG = {
+      SESSION_TIMEOUT: 30 * 60 * 1000, // 30 minutes
+      WARNING_TIME: 5 * 60 * 1000, // 5 minutes warning
+      MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+      API_RATE_LIMIT: 100, // requests per minute
+      ALLOWED_FILE_TYPES: ['pdf', 'doc', 'docx', 'zip', 'rar']
+    };
+
+    let currentUser = null;
+    let authToken = null;
+    let currentSolutionRequest = null;
+    let sessionTimer = null;
+    let warningTimer = null;
+    let apiCallCount = 0;
+    let apiCallTimer = null;
+
+    // Initialize security monitoring
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeSecurity();
+      checkAuth();
+      loadDashboard();
+      loadNotificationsCount();
+      startSessionTimer();
+      setupActivityMonitoring();
+    });
+
+    // Security Functions
+    function initializeSecurity() {
+      // Prevent right-click
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        showSecurityAlert('Right-click disabled for security');
+      });
+
+      // Prevent F12, Ctrl+Shift+I, etc.
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+            (e.ctrlKey && e.key === 'u')) {
+          e.preventDefault();
+          showSecurityAlert('Developer tools disabled');
+        }
+      });
+
+      // Detect iframe embedding
+      if (window.self !== window.top) {
+        showSecurityAlert('Framing detected - Access denied');
+      }
+
+      // Clear sensitive data on page hide
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+          clearSensitiveData();
+        }
+      });
+    }
+
+    function setupActivityMonitoring() {
+      // Reset session timer on user activity
+      ['click', 'mousemove', 'keypress', 'scroll'].forEach(event => {
+        document.addEventListener(event, resetSessionTimer, { passive: true });
+      });
+    }
+
+    function startSessionTimer() {
+      const sessionEnd = Date.now() + SECURITY_CONFIG.SESSION_TIMEOUT;
+      localStorage.setItem('sessionEnd', sessionEnd);
+      
+      sessionTimer = setInterval(() => {
+        const remaining = sessionEnd - Date.now();
+        updateSessionDisplay(remaining);
+        
+        if (remaining <= SECURITY_CONFIG.WARNING_TIME && remaining > 0) {
+          showSessionWarning(remaining);
+        } else if (remaining <= 0) {
+          secureLogout();
+        }
+      }, 1000);
+    }
+
+    function resetSessionTimer() {
+      const newSessionEnd = Date.now() + SECURITY_CONFIG.SESSION_TIMEOUT;
+      localStorage.setItem('sessionEnd', newSessionEnd);
+      
+      // Hide warning if visible
+      document.getElementById('sessionTimeoutWarning').classList.add('hidden');
+    }
+
+    function updateSessionDisplay(remaining) {
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      document.getElementById('sessionTimer').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function showSessionWarning(remaining) {
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      
+      document.getElementById('timeoutCountdown').textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      document.getElementById('sessionTimeoutWarning').classList.remove('hidden');
+    }
+
+    function extendSession() {
+      resetSessionTimer();
+      document.getElementById('sessionTimeoutWarning').classList.add('hidden');
+    }
+
+    function showSecurityAlert(message) {
+      document.getElementById('securityMessage').textContent = message;
+      document.getElementById('securityOverlay').classList.remove('hidden');
+      clearSensitiveData();
+    }
+
+    function resetSecurityAlert() {
+      document.getElementById('securityOverlay').classList.add('hidden');
+      // Force re-authentication
+      checkAuth();
+    }
+
+    function clearSensitiveData() {
+      // Clear any sensitive data from memory
+      currentUser = null;
+      authToken = null;
+      currentSolutionRequest = null;
+      
+      // Clear form data
+      const sensitiveInputs = document.querySelectorAll('input[type="password"], input[type="email"], input[type="tel"]');
+      sensitiveInputs.forEach(input => input.value = '');
+    }
+
+    // Rate limiting
+    function checkRateLimit() {
+      const now = Date.now();
+      if (!apiCallTimer) {
+        apiCallTimer = now;
+        apiCallCount = 0;
+      }
+
+      if (now - apiCallTimer > 60000) { // Reset counter every minute
+        apiCallTimer = now;
+        apiCallCount = 0;
+      }
+
+      if (apiCallCount >= SECURITY_CONFIG.API_RATE_LIMIT) {
+        showSecurityAlert('Too many requests - Rate limiting activated');
+        return false;
+      }
+
+      apiCallCount++;
+      return true;
+    }
+
+    // Authentication functions
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      const sessionEnd = localStorage.getItem('sessionEnd');
+
+      if (!token || !user || !sessionEnd) {
+        redirectToLogin();
+        return;
+      }
+
+      if (Date.now() > parseInt(sessionEnd)) {
+        secureLogout();
+        return;
+      }
+
+      authToken = token;
+      currentUser = JSON.parse(user);
+      
+      // Enhanced role checking
+      if (!['admin', 'manager'].includes(currentUser.role)) {
+        showSecurityAlert('Insufficient privileges');
+        setTimeout(redirectToLogin, 2000);
+        return;
+      }
+
+      // Validate token structure (basic check)
+      if (!isValidToken(token)) {
+        showSecurityAlert('Invalid authentication token');
+        secureLogout();
+        return;
+      }
+
+      document.getElementById('managerName').textContent = currentUser.name;
+    }
+
+    function isValidToken(token) {
+      // Basic JWT structure validation
+      return typeof token === 'string' && token.split('.').length === 3;
+    }
+
+    function redirectToLogin() {
+      window.location.href = '/login';
+    }
+
+    function secureLogout() {
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear timers
+      if (sessionTimer) clearInterval(sessionTimer);
+      if (warningTimer) clearInterval(warningTimer);
+      
+      // Redirect to login
+      redirectToLogin();
+    }
+
+    // Input sanitization
+    function sanitizeInput(input) {
+      if (typeof input !== 'string') return input;
+      
+      return input
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;')
+        .trim();
+    }
+
+    function validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    function validatePhone(phone) {
+      const phoneRegex = /^\+?[\d\s-()]{10,}$/;
+      return phoneRegex.test(phone);
+    }
+
+    // API functions with enhanced security
+    async function apiCall(endpoint, options = {}) {
+      if (!checkRateLimit()) {
+        return null;
+      }
+
+      try {
+        // Add CSRF token if available
+        const csrfToken = localStorage.getItem('csrfToken');
+        const headers = {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
+          ...options.headers
+        };
+
+        const response = await fetch(endpoint, {
+          credentials: 'same-origin',
+          headers,
+          ...options
+        });
+
+        // Check for security headers
+        const securityHeaders = {
+          'X-Frame-Options': response.headers.get('X-Frame-Options'),
+          'X-Content-Type-Options': response.headers.get('X-Content-Type-Options'),
+          'X-XSS-Protection': response.headers.get('X-XSS-Protection')
+        };
+
+        if (!securityHeaders['X-Frame-Options'] || !securityHeaders['X-Content-Type-Options']) {
+          console.warn('Missing security headers in response');
+        }
+
+        if (response.status === 401) {
+          showSecurityAlert('Session expired');
+          setTimeout(secureLogout, 2000);
+          return null;
+        }
+
+        if (response.status === 403) {
+          showSecurityAlert('Access denied');
+          return null;
+        }
+
+        if (response.status === 429) {
+          showSecurityAlert('Rate limit exceeded');
+          return null;
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Validate response structure
+        if (data && typeof data === 'object') {
+          return data;
+        } else {
+          throw new Error('Invalid response format');
+        }
+
+      } catch (error) {
+        console.error('API call failed:', error);
+        
+        // Don't expose internal errors to user
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          showSecurityAlert('Network error - Please check your connection');
+        } else {
+          showSecurityAlert('Service temporarily unavailable');
+        }
+        
+        return null;
+      }
+    }
+
+    // Utility functions
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    function toggleBlur(element) {
+      element.classList.toggle('blur-sensitive');
+    }
+
+    // File validation
+    function validateFile(file) {
+      if (file.size > SECURITY_CONFIG.MAX_FILE_SIZE) {
+        throw new Error('File size exceeds limit');
+      }
+
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      if (!SECURITY_CONFIG.ALLOWED_FILE_TYPES.includes(fileExtension)) {
+        throw new Error('File type not allowed');
+      }
+
+      return true;
+    }
+
+    // Notifications functions
+    async function loadNotificationsCount() {
+      const notifications = await apiCall('/api/notifications');
+      if (notifications) {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        const countElement = document.getElementById('notificationCount');
+        if (unreadCount > 0) {
+          countElement.textContent = unreadCount;
+          countElement.classList.remove('hidden');
+        } else {
+          countElement.classList.add('hidden');
+        }
+      }
+    }
+
+    async function toggleNotifications() {
+      const panel = document.getElementById('notificationsPanel');
+      if (panel.classList.contains('hidden')) {
+        await loadNotifications();
+        panel.classList.remove('hidden');
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+
+    async function loadNotifications() {
+      const notifications = await apiCall('/api/notifications');
+      if (notifications) {
+        const container = document.getElementById('notificationsList');
+        const recentNotifications = notifications.slice(0, 5);
+        
+        if (recentNotifications.length === 0) {
+          container.innerHTML = '<div class="p-4 text-center text-gray-400">No notifications</div>';
+        } else {
+          container.innerHTML = recentNotifications.map(notification => `
+            <div class="p-4 border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${notification.read ? '' : 'bg-gray-750'}" 
+                 onclick="markAsRead(${notification.id})">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <div class="font-medium ${notification.read ? 'text-gray-300' : 'text-white'}">${sanitizeInput(notification.title)}</div>
+                  <div class="text-sm text-gray-400 mt-1">${sanitizeInput(notification.message)}</div>
+                  <div class="text-xs text-gray-500 mt-2">${new Date(notification.createdAt).toLocaleString()}</div>
+                </div>
+                ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>' : ''}
+              </div>
+            </div>
+          `).join('');
+        }
+        
+        await loadNotificationsCount();
+      }
+    }
+
+    async function markAsRead(notificationId) {
+      await apiCall(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      });
+      await loadNotifications();
+      await loadNotificationsCount();
+    }
+
+    async function markAllAsRead() {
+      await apiCall('/api/notifications/read-all', {
+        method: 'PUT'
+      });
+      await loadNotifications();
+      await loadNotificationsCount();
+    }
+
+    // Dashboard functions
+    async function loadDashboard() {
+      const data = await apiCall('/api/dashboard');
+      if (data) {
+        document.getElementById('totalUsers').textContent = data.totalUsers?.toLocaleString() || '0';
+        document.getElementById('totalProducts').textContent = data.totalProducts?.toLocaleString() || '0';
+        document.getElementById('totalRevenue').textContent = `₦${(data.totalRevenue || 0).toLocaleString()}`;
+
+        // Calculate today's orders
+        const today = new Date().toDateString();
+        const todayOrders = (data.recentOrders || []).filter(order => 
+          new Date(order.createdAt).toDateString() === today && 
+          order.status === 'completed'
+        );
+        document.getElementById('todayOrders').textContent = todayOrders.length;
+
+        // Load recent orders
+        loadRecentOrders(data.recentOrders || []);
+      }
+    }
+
+    function loadRecentOrders(orders) {
+      const container = document.getElementById('recentOrders');
+      const recentOrders = orders.slice(0, 5);
+      
+      if (recentOrders.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No recent orders</div>';
+        return;
+      }
+
+      container.innerHTML = recentOrders.map(order => `
+        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+          <div>
+            <div class="font-medium">${sanitizeInput(order.productName || 'N/A')}</div>
+            <div class="text-sm text-gray-400">${sanitizeInput(order.userName || 'Unknown User')}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-semibold">₦${(order.amount || 0).toLocaleString()}</div>
+            <div class="text-sm status-${order.status || 'pending'}">${order.status || 'pending'}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Section management
+    function hideAllSections() {
+      const sections = [
+        'usersSection',
+        'productsManagementSection', 
+        'ordersSection',
+        'assignmentsSection'
+      ];
+      
+      sections.forEach(section => {
+        document.getElementById(section).classList.add('hidden');
+      });
+    }
+
+    function showSection(sectionId) {
+      hideAllSections();
+      document.getElementById(sectionId).classList.remove('hidden');
+    }
+
+    function loadUsers() {
+      showSection('usersSection');
+      fetchUsers();
+    }
+
+    function loadProductsManagement() {
+      showSection('productsManagementSection');
+      loadCategoryProducts();
+    }
+
+    function loadOrders() {
+      showSection('ordersSection');
+      filterOrders();
+    }
+
+    function loadRequests() {
+      showSection('assignmentsSection');
+      fetchRequests();
+    }
+
+    // Users management
+    async function fetchUsers() {
+      const users = await apiCall('/api/users');
+      if (users) {
+        displayUsers(users);
+      }
+    }
+
+    function displayUsers(users) {
+      const container = document.getElementById('usersList');
+      
+      if (!users || users.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No users found</div>';
+        return;
+      }
+
+      container.innerHTML = users.map(user => `
+        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+          <div class="flex items-center space-x-4">
+            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+              <span class="font-semibold">${user.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+            </div>
+            <div>
+              <div class="font-medium">${sanitizeInput(user.name || 'Unknown')}</div>
+              <div class="text-sm text-gray-400">${sanitizeInput(user.email || 'No email')}</div>
+              <div class="text-xs text-gray-500">${sanitizeInput(user.phone || 'No phone')}</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <span class="px-3 py-1 rounded-full text-xs ${
+              user.role === 'admin' ? 'bg-red-500' : 
+              user.role === 'manager' ? 'bg-purple-500' :
+              user.role === 'staff' ? 'bg-blue-500' : 'bg-green-500'
+            }">${user.role || 'user'}</span>
+            <span class="px-2 py-1 bg-green-500 rounded text-xs">₦${(user.wallet || 0).toLocaleString()}</span>
+            <select onchange="updateUserRole(${user.id}, this.value)" class="p-1 rounded bg-white/5 text-xs">
+              <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+              <option value="staff" ${user.role === 'staff' ? 'selected' : ''}>Staff</option>
+              <option value="cashier" ${user.role === 'cashier' ? 'selected' : ''}>Cashier</option>
+              <option value="manager" ${user.role === 'manager' ? 'selected' : ''}>Manager</option>
+            </select>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function searchUsers() {
+      const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+      const userCards = document.querySelectorAll('#usersList > div');
+      
+      userCards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+      });
+    }
+
+    async function updateUserRole(userId, newRole) {
+      if (!['user', 'staff', 'cashier', 'manager'].includes(newRole)) {
+        showSecurityAlert('Invalid role selected');
+        return;
+      }
+
+      const result = await apiCall(`/api/users/${userId}/role`, {
+        method: 'PUT',
+        body: JSON.stringify({ role: newRole })
+      });
+
+      if (result) {
+        // Show success message
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50';
+        notification.textContent = 'User role updated successfully!';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+        
+        fetchUsers();
+      }
+    }
+
+    function showAddUserModal() {
+      document.getElementById('addUserModal').classList.remove('hidden');
+    }
+
+    function hideAddUserModal() {
+      document.getElementById('addUserModal').classList.add('hidden');
+      // Reset form
+      document.getElementById('newUserName').value = '';
+      document.getElementById('newUserEmail').value = '';
+      document.getElementById('newUserPhone').value = '';
+      document.getElementById('newUserRole').value = 'user';
+    }
+
+    async function createUser() {
+      const name = sanitizeInput(document.getElementById('newUserName').value);
+      const email = sanitizeInput(document.getElementById('newUserEmail').value);
+      const phone = sanitizeInput(document.getElementById('newUserPhone').value);
+      const role = document.getElementById('newUserRole').value;
+
+      // Validation
+      if (!name || !email) {
+        alert('Name and email are required');
+        return;
+      }
+
+      if (!validateEmail(email)) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
+      if (phone && !validatePhone(phone)) {
+        alert('Please enter a valid phone number');
+        return;
+      }
+
+      const result = await apiCall('/api/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          password: 'password123', // In production, generate a secure random password
+          role
+        })
+      });
+
+      if (result) {
+        alert('User created successfully! Default password: password123');
+        hideAddUserModal();
+        fetchUsers();
+        loadDashboard();
+      }
+    }
+
+    // Products Management Functions
+    async function loadCategoryProducts() {
+      const category = document.getElementById('productCategorySelect').value;
+      let products;
+
+      if (category === 'all') {
+        products = await apiCall('/api/products');
+      } else {
+        products = await apiCall(`/api/products/category/${category}`);
+      }
+
+      if (products) {
+        displayProductsManagement(products);
+      }
+    }
+
+    function displayProductsManagement(products) {
+      const container = document.getElementById('productsManagementList');
+      
+      if (!products || products.length === 0) {
+        container.innerHTML = '<div class="col-span-3 text-center small-muted py-8">No products found</div>';
+        return;
+      }
+
+      container.innerHTML = products.map(product => `
+        <div class="neon-card p-4 rounded-xl">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="font-semibold text-lg">${sanitizeInput(product.name)}</h4>
+              <p class="small-muted text-sm">${sanitizeInput(product.description || '')}</p>
+            </div>
+            <span class="px-2 py-1 bg-blue-500 rounded text-xs">${product.category}</span>
+          </div>
+          
+          <div class="space-y-2 mb-4">
+            ${product.network ? `<div class="flex justify-between"><span class="small-muted">Network:</span><span>${product.network}</span></div>` : ''}
+            ${product.dataSize ? `<div class="flex justify-between"><span class="small-muted">Data Size:</span><span>${product.dataSize}</span></div>` : ''}
+            ${product.validity ? `<div class="flex justify-between"><span class="small-muted">Validity:</span><span>${product.validity}</span></div>` : ''}
+            ${product.provider ? `<div class="flex justify-between"><span class="small-muted">Provider:</span><span>${product.provider}</span></div>` : ''}
+            ${product.discount ? `<div class="flex justify-between"><span class="small-muted">Discount:</span><span class="text-green-400">${product.discount}%</span></div>` : ''}
+          </div>
+
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-2xl font-bold text-green-400">₦${product.price}</div>
+              ${product.amount ? `<div class="small-muted text-sm">Value: ₦${product.amount}</div>` : ''}
+            </div>
+            <div class="flex gap-2">
+              <button onclick="editProduct(${product.id})" class="p-2 bg-blue-500 hover:bg-blue-600 rounded">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button onclick="deleteProduct(${product.id})" class="p-2 bg-red-500 hover:bg-red-600 rounded">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showProductForm() {
+      document.getElementById('airtimeForm').classList.add('hidden');
+      document.getElementById('dataForm').classList.add('hidden');
+      document.getElementById('billsForm').classList.add('hidden');
+
+      const productType = document.getElementById('productType').value;
+      if (productType) {
+        document.getElementById(`${productType}Form`).classList.remove('hidden');
+      }
+    }
+
+    async function createSpecificProduct() {
+      const productType = document.getElementById('productType').value;
+      
+      if (!productType) {
+        alert('Please select a product type');
+        return;
+      }
+
+      let endpoint = '';
+      let payload = {};
+
+      switch (productType) {
+        case 'airtime':
+          endpoint = '/api/products/airtime';
+          payload = {
+            network: document.getElementById('airtimeNetwork').value,
+            amount: parseFloat(document.getElementById('airtimeAmount').value),
+            discount: parseFloat(document.getElementById('airtimeDiscount').value) || 0
+          };
+          break;
+        case 'data':
+          endpoint = '/api/products/data';
+          payload = {
+            network: document.getElementById('dataNetwork').value,
+            dataSize: document.getElementById('dataSize').value,
+            validity: document.getElementById('dataValidity').value,
+            price: parseFloat(document.getElementById('dataPrice').value)
+          };
+          break;
+        case 'bills':
+          endpoint = '/api/products/bills';
+          payload = {
+            billType: document.getElementById('billsType').value,
+            provider: document.getElementById('billsProvider').value,
+            amount: parseFloat(document.getElementById('billsAmount').value),
+            fee: parseFloat(document.getElementById('billsFee').value)
+          };
+          break;
+      }
+
+      // Validation
+      for (let key in payload) {
+        if (!payload[key] && payload[key] !== 0) {
+          alert(`Please fill in all ${productType} fields`);
+          return;
+        }
+      }
+
+      const result = await apiCall(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (result) {
+        alert('Product created successfully!');
+        hideAddProductModal();
+        loadProductsManagement();
+        loadDashboard();
+      }
+    }
+
+    function showAddProductModal() {
+      document.getElementById('addProductModal').classList.remove('hidden');
+      document.getElementById('productType').value = '';
+      showProductForm();
+    }
+
+    function hideAddProductModal() {
+      document.getElementById('addProductModal').classList.add('hidden');
+    }
+
+    // Orders management
+    async function filterOrders() {
+      const status = document.getElementById('orderStatusFilter').value;
+      const orders = await apiCall('/api/orders');
+      
+      if (orders) {
+        displayOrders(orders, status);
+      }
+    }
+
+    function displayOrders(orders, statusFilter = 'all') {
+      let filteredOrders = orders || [];
+      
+      if (statusFilter !== 'all') {
+        filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
+      }
+
+      const container = document.getElementById('ordersList');
+      if (filteredOrders.length === 0) {
+        container.innerHTML = '<div class="text-center small-muted py-8">No orders found</div>';
+      } else {
+        container.innerHTML = filteredOrders.map(order => `
+          <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+            <div>
+              <div class="font-medium">${sanitizeInput(order.productName || 'N/A')}</div>
+              <div class="small-muted text-sm">Order by ${sanitizeInput(order.userName || 'Unknown User')}</div>
+              ${order.details?.phoneNumber ? `<div class="small-muted text-sm">Phone: ${sanitizeInput(order.details.phoneNumber)}</div>` : ''}
+            </div>
+            <div class="text-right">
+              <div class="font-bold">₦${(order.amount || 0).toLocaleString()}</div>
+              <div class="status-${order.status} text-sm">${order.status}</div>
+              <div class="small-muted text-sm">${new Date(order.createdAt).toLocaleDateString()}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Requests Management
+    async function fetchRequests() {
+      const typeFilter = document.getElementById('requestTypeFilter').value;
+      const statusFilter = document.getElementById('requestStatusFilter').value;
+      
+      const requests = await apiCall('/api/requests');
+      
+      if (requests) {
+        let allRequests = [
+          ...(requests.assignments || []).map(req => ({ ...req, requestType: 'assignment' })),
+          ...(requests.projects || []).map(req => ({ ...req, requestType: 'project' }))
+        ];
+
+        if (typeFilter !== 'all') {
+          allRequests = allRequests.filter(req => req.requestType === typeFilter);
+        }
+        if (statusFilter !== 'all') {
+          allRequests = allRequests.filter(req => req.status === statusFilter);
+        }
+
+        displayRequests(allRequests);
+      }
+    }
+
+    function displayRequests(requests) {
+      const container = document.getElementById('requestsList');
+      
+      if (!requests || requests.length === 0) {
+        container.innerHTML = '<div class="col-span-2 text-center small-muted py-8">No requests found</div>';
+        return;
+      }
+
+      container.innerHTML = requests.map(request => `
+        <div class="neon-card p-4 rounded-xl">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="font-semibold text-lg">${sanitizeInput(request.title)}</h4>
+              <p class="small-muted">${sanitizeInput(request.subject)} • ${request.requestType}</p>
+            </div>
+            <span class="px-2 py-1 rounded text-xs status-${request.status}">${request.status}</span>
+          </div>
+          
+          <p class="small-muted mb-3">${sanitizeInput(request.description)}</p>
+          
+          <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-sm">
+              <span>Budget:</span>
+              <span>₦${(request.budget || 0).toLocaleString()}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span>Deadline:</span>
+              <span>${request.deadline ? new Date(request.deadline).toLocaleDateString() : 'Not specified'}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span>Created:</span>
+              <span>${new Date(request.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+          
+          <div class="flex gap-2">
+            ${(request.status === 'pending' || request.status === 'in-progress') ? `
+            <button onclick="showUploadSolutionModal(${request.id})" class="flex-1 py-2 bg-green-500 hover:bg-green-600 rounded text-sm">
+              Upload Solution
+            </button>
+            ` : ''}
+            <button onclick="viewRequestDetails(${request.id})" class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 rounded text-sm">
+              View Details
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Solution upload modal functions
+    async function showUploadSolutionModal(requestId) {
+      const request = await apiCall(`/api/requests/${requestId}`);
+      if (request) {
+        currentSolutionRequest = request;
+        
+        document.getElementById('solutionRequestDetails').innerHTML = `
+          <div>
+            <div class="font-semibold">${sanitizeInput(request.title)}</div>
+            <div class="text-sm text-gray-400">${sanitizeInput(request.userName)} • ${request.type}</div>
+            <div class="text-sm mt-2">${sanitizeInput(request.description)}</div>
+          </div>
+        `;
+        
+        document.getElementById('uploadSolutionModal').classList.remove('hidden');
+      }
+    }
+
+    function hideUploadSolutionModal() {
+      document.getElementById('uploadSolutionModal').classList.add('hidden');
+      currentSolutionRequest = null;
+      document.getElementById('solutionNotes').value = '';
+      document.getElementById('solutionPrice').value = '';
+      document.getElementById('solutionFileUpload').value = '';
+      document.getElementById('solutionFileLabel').textContent = 'Upload solution file (Max 10MB)';
+    }
+
+    async function uploadSolution() {
+      if (!currentSolutionRequest) return;
+
+      const solutionData = {
+        requestId: currentSolutionRequest.id,
+        notes: sanitizeInput(document.getElementById('solutionNotes').value),
+        price: parseFloat(document.getElementById('solutionPrice').value) || 0
+      };
+
+      const fileInput = document.getElementById('solutionFileUpload');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('Please upload a solution file');
+        return;
+      }
+
+      try {
+        validateFile(file);
+      } catch (error) {
+        alert(error.message);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('solution', JSON.stringify(solutionData));
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/requests/solution', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: formData
+        });
+
+        if (response.ok) {
+          alert('Solution uploaded successfully');
+          hideUploadSolutionModal();
+          fetchRequests();
+        } else {
+          alert('Failed to upload solution');
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Upload failed');
+      }
+    }
+
+    // File upload handling
+    document.getElementById('solutionFileUpload').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const label = document.getElementById('solutionFileLabel');
+      
+      if (file) {
+        label.textContent = `Selected: ${file.name}`;
+      } else {
+        label.textContent = 'Upload solution file (Max 10MB)';
+      }
+    });
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'addUserModal') hideAddUserModal();
+      if (e.target.id === 'addProductModal') hideAddProductModal();
+      if (e.target.id === 'uploadSolutionModal') hideUploadSolutionModal();
+      if (e.target.id === 'securityOverlay') resetSecurityAlert();
+    });
+
+    // Close notifications when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#notificationsPanel') && !e.target.closest('#notificationBell')) {
+        document.getElementById('notificationsPanel').classList.add('hidden');
+      }
+    });
+
+  </script>
+</body>
+</html>
